@@ -2,10 +2,10 @@
 'use client';
 
 import { ReactNode, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Role } from '@/types';
 import { CircularProgress, Box } from '@mui/material';
+import { useAppSelector } from '@/redux/hooks';
 
 interface PrivateRouteProps {
   children: ReactNode;
@@ -13,8 +13,8 @@ interface PrivateRouteProps {
 }
 
 export default function PrivateRoute({ children, allowedRoles }: PrivateRouteProps) {
-  const { isAuthenticated, user, loading } = useAuth();
   const router = useRouter();
+  const { isAuthenticated, user, loading } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     if (!loading) {

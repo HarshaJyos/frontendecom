@@ -18,8 +18,6 @@ import { useLoginMutation } from '@/redux/api';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import PublicRoute from '@/components/PublicRoute';
-import { useAppDispatch } from '@/redux/hooks';
-import { setUser, setLoginSuccess } from '@/redux/features/authSlice';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -27,19 +25,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [login, { isLoading }] = useLoginMutation();
   const router = useRouter();
-  const dispatch = useAppDispatch();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await login({ email, password }).unwrap();
-      dispatch(setUser(response.user));
-      dispatch(setLoginSuccess());
-      // Store login success flag to trigger refetch
-      localStorage.setItem('loginSuccess', Date.now().toString());
+      await login({ email, password }).unwrap();
       toast.success('Logged in successfully');
       router.push('/');
     } catch (error) {
+      console.error('Login error:', error);
       toast.error('Invalid email or password');
     }
   };
@@ -125,4 +119,3 @@ export default function LoginPage() {
     </PublicRoute>
   );
 }
-

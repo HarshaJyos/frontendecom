@@ -1,13 +1,15 @@
 // src/redux/features/authSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { api } from "../api";
+import { User } from "@/types";
 
 interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
-  user: { id: string; name: string; email: string; role: string } | null;
-  loginSuccess: boolean;
+  user: User | null;
+  loading: boolean;
+  isRefreshing: boolean;
 }
 
 const initialState: AuthState = {
@@ -15,7 +17,8 @@ const initialState: AuthState = {
   refreshToken: null,
   isAuthenticated: false,
   user: null,
-  loginSuccess: false,
+  loading: true,
+  isRefreshing: false,
 };
 
 const authSlice = createSlice({
@@ -27,42 +30,54 @@ const authSlice = createSlice({
       state.refreshToken = action.payload.refreshToken;
       state.isAuthenticated = true;
     },
-    setUser: (state, action: PayloadAction<{ id: string; name: string; email: string; role: string }>) => {
+    setUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload;
       state.isAuthenticated = true;
-    },
-    setLoginSuccess: (state) => {
-      state.loginSuccess = true;
-    },
-    resetLoginSuccess: (state) => {
-      state.loginSuccess = false;
     },
     clearAuth: (state) => {
       state.accessToken = null;
       state.refreshToken = null;
       state.isAuthenticated = false;
       state.user = null;
-      state.loginSuccess = false;
+    },
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.loading = action.payload;
+    },
+    setRefreshing: (state, action: PayloadAction<boolean>) => {
+      state.isRefreshing = action.payload;
     },
   },
   extraReducers: (builder) => {
     builder.addMatcher(api.endpoints.login.matchFulfilled, (state, { payload }) => {
+      state.accessToken = payload.accessToken;
+      state.refreshToken = payload.refreshToken;
       state.user = payload.user;
       state.isAuthenticated = true;
-      state.loginSuccess = true;
+      state.loading = false;
     });
     builder.addMatcher(api.endpoints.logout.matchFulfilled, (state) => {
       state.accessToken = null;
       state.refreshToken = null;
       state.isAuthenticated = false;
       state.user = null;
-      state.loginSuccess = false;
+      state.loading = false;
     });
     builder.addMatcher(api.endpoints.refreshToken.matchFulfilled, (state, { payload }) => {
       state.accessToken = payload.accessToken;
+      state.isRefreshing = false;
+    });
+    builder.addMatcher(api.endpoints.getProfile.matchFulfilled, (state, { payload }) => {
+      state.user = payload;
+      state.isAuthenticated = true;
+      state.loading = false;
+    });
+    builder.addMatcher(api.endpoints.getProfile.matchRejected, (state) => {
+      state.isAuthenticated = false;
+      state.user = null;
+      state.loading = false;
     });
   },
 });
 
-export const { setTokens, setUser, setLoginSuccess, resetLoginSuccess, clearAuth } = authSlice.actions;
+export const { setTokens, setUser, clearAuth, setLoading, setRefreshing } = authSlice.actions;
 export default authSlice.reducer;

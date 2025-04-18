@@ -8,7 +8,6 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
 import { useAppSelector } from '@/redux/hooks';
 import { useLogoutMutation } from '@/redux/api';
 import toast from 'react-hot-toast';
@@ -16,13 +15,16 @@ import { clearAuth } from '@/redux/features/authSlice';
 import { useAppDispatch } from '@/redux/hooks';
 
 export default function HeaderIcons() {
-  const { isAuthenticated, user, loading, checkAuth } = useAuth();
   const router = useRouter();
   const [logout] = useLogoutMutation();
   const cartItems = useAppSelector((state) => state.user.profile?.cart?.length || 0);
   const wishlistItems = useAppSelector((state) => state.user.profile?.wishlist?.length || 0);
+  const user = useAppSelector((state) => state.user.profile);
   const dispatch = useAppDispatch();
   
+  // Get authentication status from Redux state
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+
   // Local state to track authentication status
   const [localAuth, setLocalAuth] = useState(isAuthenticated);
   
@@ -61,23 +63,19 @@ export default function HeaderIcons() {
       localStorage.removeItem('loginSuccess');
       
       // Force a check of auth state
-      checkAuth();
       
       toast.success('Logged out successfully');
       
       // Navigate to login page
       router.push('/login');
     } catch (error) {
+        console.error('Logout error:', error);
       toast.error('Failed to logout');
       // If logout fails, refresh auth state
-      checkAuth();
       setLocalAuth(isAuthenticated);
     }
   };
 
-  if (loading) {
-    return null; // Prevent rendering until auth state is resolved
-  }
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

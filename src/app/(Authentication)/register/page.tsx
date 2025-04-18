@@ -52,12 +52,10 @@ export default function RegisterPage() {
         ...(role === 'seller' && businessAddress ? { businessAddress } : {}),
       };
       const response = await register(payload).unwrap();
-      // Store role in localStorage with 5-minute expiration
-      const expiry = Date.now() + 5 * 60 * 1000;
-      localStorage.setItem('userRole', JSON.stringify({ role, expiry }));
       toast.success('Registered successfully! Please verify your email.');
-      router.push(`/verify-email?userId=${response.userId}`);
+      router.push(`/verify-email?userId=${response.userId}&role=${role}`);
     } catch (error) {
+        console.error('Registration error:', error);
       toast.error('Registration failed');
     }
   };

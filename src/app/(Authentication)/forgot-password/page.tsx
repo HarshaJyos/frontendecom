@@ -27,6 +27,7 @@ export default function ForgotPasswordPage() {
       toast.success('Password reset link sent to your email');
       router.push('/login');
     } catch (error) {
+        console.error('Error sending reset link:', error);
       toast.error('Failed to send reset link');
     }
   };

@@ -14,11 +14,14 @@
     "@mui/icons-material": "^7.0.2",
     "@mui/material": "^7.0.2",
     "@reduxjs/toolkit": "^2.6.1",
+    "@types/leaflet": "^1.9.17",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.488.0",
     "next": "15.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.2",
+    "react-leaflet": "^5.0.0",
     "react-redux": "^9.2.0"
   },
   "devDependencies": {
