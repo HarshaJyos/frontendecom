@@ -8,18 +8,21 @@ let hasAuthBeenChecked = false;
 let lastRefreshAttempt = 0;
 const REFRESH_DEBOUNCE_MS = 1000;
 
+// Access token lifetime (15 minutes) and refresh threshold (1 minute before expiry)
+const ACCESS_TOKEN_LIFETIME_MS = 15 * 60 * 1000; // 15 minutes
+const REFRESH_THRESHOLD_MS = 1 * 60 * 1000; // 1 minute before expiry
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const authMiddleware = (store: any) => (next: any) => async (action: any) => {
-    const state = store.getState();
+  const state = store.getState();
   const now = Date.now();
 
   const checkAuthStatus = async () => {
-    // Skip if already checked in this session
     if (hasAuthBeenChecked) return state.auth.isAuthenticated;
 
     try {
-        const result = await store.dispatch(api.endpoints.getProfile.initiate(undefined, { forceRefetch: true })).unwrap();
-
+      const result = await store.dispatch(
+        api.endpoints.getProfile.initiate(undefined, { forceRefetch: true })
+      ).unwrap();
       store.dispatch(setUser(result));
       hasAuthBeenChecked = true;
       return true;
@@ -32,7 +35,6 @@ export const authMiddleware = (store: any) => (next: any) => async (action: any)
   };
 
   const refreshAccessToken = async () => {
-    // Debounce refresh attempts
     if (now - lastRefreshAttempt < REFRESH_DEBOUNCE_MS) {
       return false;
     }
@@ -54,6 +56,15 @@ export const authMiddleware = (store: any) => (next: any) => async (action: any)
     }
   };
 
+  // Check if token needs refreshing based on issuedAt
+  const shouldRefreshToken = () => {
+    if (!state.auth.issuedAt || !state.auth.refreshToken || state.auth.isRefreshing) {
+      return false;
+    }
+    const timeSinceIssued = now - state.auth.issuedAt;
+    return timeSinceIssued > ACCESS_TOKEN_LIFETIME_MS - REFRESH_THRESHOLD_MS;
+  };
+
   // Handle initial auth check
   if (action.type === "auth/INIT_AUTH") {
     store.dispatch(setLoading(true));
@@ -69,7 +80,7 @@ export const authMiddleware = (store: any) => (next: any) => async (action: any)
   // Handle successful login
   if (api.endpoints.login.matchFulfilled(action)) {
     store.dispatch(setLoading(true));
-    hasAuthBeenChecked = false; // Reset for new login
+    hasAuthBeenChecked = false;
     await checkAuthStatus();
     store.dispatch(setLoading(false));
   }
@@ -77,12 +88,12 @@ export const authMiddleware = (store: any) => (next: any) => async (action: any)
   // Handle successful logout
   if (api.endpoints.logout.matchFulfilled(action)) {
     store.dispatch(clearAuth());
-    hasAuthBeenChecked = false; // Reset for next session
+    hasAuthBeenChecked = false;
   }
 
   // Handle successful token refresh
   if (api.endpoints.refreshToken.matchFulfilled(action)) {
-    hasAuthBeenChecked = false; // Allow profile check after refresh
+    hasAuthBeenChecked = false;
     await checkAuthStatus();
   }
 
@@ -98,15 +109,20 @@ export const authMiddleware = (store: any) => (next: any) => async (action: any)
     store.dispatch(setRefreshing(false));
 
     if (refreshed && action.meta?.arg?.endpointName) {
-      // Retry the original action only if it’s an API call
       return store.dispatch({
         type: action.meta.arg.endpointName + "/executeQuery",
         payload: action.meta.arg,
       });
     } else {
-      // If refresh fails or no endpoint, clear auth to prevent loops
       store.dispatch(clearAuth());
     }
+  }
+
+  // Proactively refresh token if nearing expiry
+  if (shouldRefreshToken()) {
+    store.dispatch(setRefreshing(true));
+    await refreshAccessToken();
+    store.dispatch(setRefreshing(false));
   }
 
   return next(action);

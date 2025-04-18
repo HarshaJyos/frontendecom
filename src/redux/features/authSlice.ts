@@ -1,4 +1,4 @@
-// src/redux/features/authSlice.ts
+//src/redux/features/authSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { api } from "../api";
 import { User } from "@/types";
@@ -10,6 +10,7 @@ interface AuthState {
   user: User | null;
   loading: boolean;
   isRefreshing: boolean;
+  issuedAt: number | null; // Timestamp (ms) when access token was issued
 }
 
 const initialState: AuthState = {
@@ -19,6 +20,7 @@ const initialState: AuthState = {
   user: null,
   loading: true,
   isRefreshing: false,
+  issuedAt: null,
 };
 
 const authSlice = createSlice({
@@ -29,6 +31,7 @@ const authSlice = createSlice({
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
       state.isAuthenticated = true;
+      state.issuedAt = Date.now(); // Set issuedAt when tokens are updated
     },
     setUser: (state, action: PayloadAction<User>) => {
       state.user = action.payload;
@@ -39,6 +42,7 @@ const authSlice = createSlice({
       state.refreshToken = null;
       state.isAuthenticated = false;
       state.user = null;
+      state.issuedAt = null; // Clear issuedAt on logout
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
@@ -54,6 +58,7 @@ const authSlice = createSlice({
       state.user = payload.user;
       state.isAuthenticated = true;
       state.loading = false;
+      state.issuedAt = Date.now(); // Set issuedAt on login
     });
     builder.addMatcher(api.endpoints.logout.matchFulfilled, (state) => {
       state.accessToken = null;
@@ -61,10 +66,12 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.user = null;
       state.loading = false;
+      state.issuedAt = null; // Clear issuedAt on logout
     });
     builder.addMatcher(api.endpoints.refreshToken.matchFulfilled, (state, { payload }) => {
       state.accessToken = payload.accessToken;
       state.isRefreshing = false;
+      state.issuedAt = Date.now(); // Set issuedAt on refresh
     });
     builder.addMatcher(api.endpoints.getProfile.matchFulfilled, (state, { payload }) => {
       state.user = payload;

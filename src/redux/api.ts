@@ -4,7 +4,7 @@ import { RootState } from "./store";
 import { Order } from "@/types";
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: process.env.NEXT_PUBLIC_API_URL || "kartheekbackendtest.azurewebsites.net/api/v1",
+  baseUrl: process.env.NEXT_PUBLIC_API_URL || "https://kartheekbackendtest.azurewebsites.net/api/v1",
   credentials: "include",
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth.accessToken;
